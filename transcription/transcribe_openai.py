@@ -37,6 +37,7 @@ from openai import (
 
 MODEL = "whisper-1"
 DEFAULT_OUTPUT_DIR = Path(__file__).parent.parent / "output"
+WHISPER_PRICE_PER_MINUTE = 0.006  # OpenAI Whisper API pricing (USD), check openai.com/pricing for current rate
 MAX_MB = 25
 CHUNK_MINUTES = 10
 RETRY_ATTEMPTS = 5
@@ -95,6 +96,36 @@ def transcribe_file(file_path: Path):
             time.sleep(delay)
         except (AuthenticationError, RateLimitError, APIStatusError, Exception) as e:
             raise RuntimeError(f"{type(e).__name__}: {e}") from e
+
+
+def probe_duration_seconds(path: Path) -> float:
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-v", "quiet", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
+            capture_output=True, text=True, timeout=60,
+        )
+        return float(result.stdout.strip())
+    except (subprocess.TimeoutExpired, ValueError, OSError):
+        return 0.0
+
+
+def estimate_and_confirm(mp4s, root: Path, output_dir: Path) -> bool:
+    pending = [m for m in mp4s if not output_path_for(m, root, output_dir).exists()]
+    if not pending:
+        print("[INFO] All files already have transcripts — nothing to do.")
+        return False
+
+    print(f"[INFO] Estimating audio length of {len(pending)} file(s) to transcribe (this can take a moment)...")
+    total_minutes = sum(probe_duration_seconds(m) for m in pending) / 60
+    est_cost = total_minutes * WHISPER_PRICE_PER_MINUTE
+    print(f"[INFO] Total audio: ~{total_minutes:.1f} min  |  Estimated cost: ~${est_cost:.2f} "
+          f"(OpenAI Whisper API @ ${WHISPER_PRICE_PER_MINUTE:.3f}/min — verify current rate at openai.com/pricing)")
+
+    answer = input("[?] Proceed with transcription? [y/N]: ").strip().lower()
+    if answer != "y":
+        print("[INFO] Cancelled — no API calls made.")
+        return False
+    return True
 
 
 def output_path_for(mp4_path: Path, root: Path, output_dir: Path) -> Path:
@@ -157,6 +188,8 @@ def main():
             sys.exit(0)
         print(f"[INFO] Found {len(mp4s)} MP4 file(s) in {target.name}")
         print(f"[INFO] Transcripts will be written to: {output_dir}")
+        if not estimate_and_confirm(mp4s, target, output_dir):
+            sys.exit(0)
         for mp4 in mp4s:
             try:
                 process_one(mp4, target, output_dir)

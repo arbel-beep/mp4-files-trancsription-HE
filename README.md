@@ -78,6 +78,11 @@ python transcription/transcribe_local.py "C:/path/to/videos" --model medium
 This script automatically extracts audio, splits files over 25MB into chunks,
 and stitches the resulting transcript back together.
 
+Before it sends anything to OpenAI, it scans the audio length of the files that
+still need transcripts and shows an estimated cost (Whisper API is billed per
+minute) — you confirm with `y` before any API calls are made, so you won't
+accidentally kick off a big, costly batch blind.
+
 ## 3. Use the transcripts
 
 Both transcribers write `.txt` files into the `output/` folder (or wherever you
