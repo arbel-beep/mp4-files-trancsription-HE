@@ -5,8 +5,17 @@ cd /d "%~dp0"
 REM ---- auto-install missing tools (skips anything already present) ----
 set NEEDS_RESTART=0
 
-where python >nul 2>nul
-if errorlevel 1 (
+REM "where python" can find Windows' Store-alias stub even with no real
+REM Python installed, so actually run it (and the "py" launcher) to check.
+set PYLAUNCHER=
+python --version >nul 2>nul
+if not errorlevel 1 set PYLAUNCHER=python
+if not defined PYLAUNCHER (
+    py -3 --version >nul 2>nul
+    if not errorlevel 1 set PYLAUNCHER=py -3
+)
+
+if not defined PYLAUNCHER (
     echo [setup] Python not found - installing via winget...
     winget install -e --id Python.Python.3.12 --silent --accept-package-agreements --accept-source-agreements
     if errorlevel 1 (
@@ -44,9 +53,10 @@ if "%NEEDS_RESTART%"=="1" (
 REM ---- one-time setup: venv + deps (skips if venv already exists) ----
 if not exist ".venv\Scripts\python.exe" (
     echo [setup] Creating virtual environment...
-    python -m venv .venv
+    %PYLAUNCHER% -m venv .venv
     if errorlevel 1 (
-        echo [ERROR] Python not found. Install Python 3.9+ from https://python.org and re-run.
+        echo [ERROR] Could not create the virtual environment with "%PYLAUNCHER%".
+        echo [ERROR] Make sure Python 3.9+ is installed from https://python.org and re-run.
         pause
         exit /b 1
     )
