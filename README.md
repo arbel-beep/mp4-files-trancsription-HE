@@ -5,6 +5,14 @@ them with Whisper (locally or via the OpenAI API), and collect the resulting
 `.txt` files in one folder — ready for you to upload anywhere you like (Notion,
 Drive, Obsidian, whatever fits your workflow).
 
+## Quick start (Windows)
+
+Double-click [start.bat](start.bat) — it sets up everything (virtual environment,
+dependencies) on first run, then shows a menu to split videos or transcribe,
+prompting for the folder path and OpenAI key as needed. No terminal commands
+required (you'll still need [ffmpeg](https://ffmpeg.org/download.html) on your
+`PATH` and Python 3.9+ installed).
+
 ## How it works
 
 ```
