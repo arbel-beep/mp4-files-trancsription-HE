@@ -92,6 +92,20 @@ whichever tool you prefer (Notion's own importer, a sync app, drag-and-drop,
 your own script, etc.). This project intentionally stops at "clean .txt files
 in one place" so you stay free to pick your own destination.
 
+## What to do with your transcripts
+
+The pipeline stops at clean `.txt` files on purpose — here's what I do with mine:
+
+- **Notion** — if you have a Notion account (or want to set one up for this), I'd
+  highly recommend it. Feed the `.txt` files to any AI chat tool that connects to
+  your Notion workspace, and it'll organize the transcripts for you automatically.
+
+  ![Uploading transcripts via an AI chat connected to Notion](image.png)
+
+- **NotebookLM** — adding the `.txt` files as sources to a notebook is a great
+  use too. More source material means more context for NotebookLM to work with,
+  which makes its summaries, Q&A, and audio overviews noticeably more useful.
+
 ## Notes
 
 - Both transcribers skip any MP4 whose `.txt` output already exists, so re-runs
