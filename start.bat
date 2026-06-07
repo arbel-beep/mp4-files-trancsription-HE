@@ -2,7 +2,46 @@
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
-REM ---- one-time setup: venv + deps ----
+REM ---- auto-install missing tools (skips anything already present) ----
+set NEEDS_RESTART=0
+
+where python >nul 2>nul
+if errorlevel 1 (
+    echo [setup] Python not found - installing via winget...
+    winget install -e --id Python.Python.3.12 --silent --accept-package-agreements --accept-source-agreements
+    if errorlevel 1 (
+        echo [ERROR] Could not install Python automatically. Install it from https://python.org and re-run.
+        pause
+        exit /b 1
+    )
+    set NEEDS_RESTART=1
+) else (
+    echo [setup] Python found - skipping.
+)
+
+where ffmpeg >nul 2>nul
+if errorlevel 1 (
+    echo [setup] ffmpeg not found - installing via winget...
+    winget install -e --id Gyan.FFmpeg --silent --accept-package-agreements --accept-source-agreements
+    if errorlevel 1 (
+        echo [ERROR] Could not install ffmpeg automatically. Install it from https://ffmpeg.org/download.html and re-run.
+        pause
+        exit /b 1
+    )
+    set NEEDS_RESTART=1
+) else (
+    echo [setup] ffmpeg found - skipping.
+)
+
+if "%NEEDS_RESTART%"=="1" (
+    echo.
+    echo [setup] Newly installed tools need a fresh terminal to be on PATH.
+    echo [setup] Close this window and double-click start.bat again to continue.
+    pause
+    exit /b 0
+)
+
+REM ---- one-time setup: venv + deps (skips if venv already exists) ----
 if not exist ".venv\Scripts\python.exe" (
     echo [setup] Creating virtual environment...
     python -m venv .venv
@@ -14,6 +53,8 @@ if not exist ".venv\Scripts\python.exe" (
     echo [setup] Installing dependencies, this can take a few minutes...
     ".venv\Scripts\python.exe" -m pip install --upgrade pip >nul
     ".venv\Scripts\python.exe" -m pip install -r transcription\requirements.txt
+) else (
+    echo [setup] Virtual environment found - skipping setup.
 )
 
 set PY=".venv\Scripts\python.exe"
