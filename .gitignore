@@ -1,0 +1,20 @@
+# Secrets
+transcription/.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Generated transcripts land here — don't commit personal output
+output/
+**/*.txt
+!**/requirements.txt
+
+# Media (large, generated/downloaded — don't commit)
+*.mp4
+*.mp3
+
+# Whisper model cache
+.cache/
