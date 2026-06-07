@@ -100,7 +100,8 @@ The pipeline stops at clean `.txt` files on purpose — here's what I do with mi
   highly recommend it. Feed the `.txt` files to any AI chat tool that connects to
   your Notion workspace, and it'll organize the transcripts for you automatically.
 
-  ![Uploading transcripts via an AI chat connected to Notion](image.png)
+  ![Uploading transcripts via an AI chat connected to Notion](images/image.png)
+  ![Notion workspace organized from uploaded transcripts](images/image%202.png)
 
 - **NotebookLM** — adding the `.txt` files as sources to a notebook is a great
   use too. More source material means more context for NotebookLM to work with,
