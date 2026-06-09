@@ -136,13 +136,14 @@ def output_path_for(mp4_path: Path, root: Path, output_dir: Path) -> Path:
     return (output_dir / rel).with_suffix(".txt")
 
 
-def process_one(mp4_path: Path, root: Path, output_dir: Path):
+def process_one(mp4_path: Path, root: Path, output_dir: Path) -> float:
+    """Returns the cost in USD for this file (0.0 if skipped)."""
     print(f"\n{'='*60}")
     print(f"[INFO] Processing: {mp4_path.name}")
     out = output_path_for(mp4_path, root, output_dir)
     if out.exists():
         print(f"[INFO] Skip — {out.name} already exists")
-        return
+        return 0.0
     out.parent.mkdir(parents=True, exist_ok=True)
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -150,6 +151,7 @@ def process_one(mp4_path: Path, root: Path, output_dir: Path):
         audio = tmp / "audio.mp3"
         extract_audio(mp4_path, audio)
         size_mb = audio.stat().st_size / 1048576
+        duration_min = probe_duration_seconds(audio) / 60
 
         if size_mb <= MAX_MB:
             print(f"[INFO] Small file ({size_mb:.1f} MB) — direct transcription")
@@ -166,8 +168,10 @@ def process_one(mp4_path: Path, root: Path, output_dir: Path):
                 parts.append(transcribe_file(chunk))
             text = "\n\n".join(parts)
 
+    cost = duration_min * WHISPER_PRICE_PER_MINUTE
     out.write_text(text, encoding="utf-8")
-    print(f"[DONE] Saved: {out}")
+    print(f"[DONE] Saved: {out}  |  {duration_min:.1f} min  →  cost: ${cost:.4f}")
+    return cost
 
 
 def main():
@@ -180,7 +184,10 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if target.is_file():
-        process_one(target, target.parent, output_dir)
+        cost = process_one(target, target.parent, output_dir)
+        if cost > 0:
+            print(f"\n[COST] Total spent this session: ${cost:.4f} (estimate)")
+            print(f"[COST] Verify actual charges: https://platform.openai.com/usage")
     elif target.is_dir():
         mp4s = sorted(p for p in target.rglob("*.mp4") if "_part" not in p.stem)
         if not mp4s:
@@ -190,11 +197,15 @@ def main():
         print(f"[INFO] Transcripts will be written to: {output_dir}")
         if not estimate_and_confirm(mp4s, target, output_dir):
             sys.exit(0)
+        total_cost = 0.0
         for mp4 in mp4s:
             try:
-                process_one(mp4, target, output_dir)
+                total_cost += process_one(mp4, target, output_dir)
             except Exception as e:
                 print(f"[ERROR] {mp4.name}: {e}")
+        if total_cost > 0:
+            print(f"\n[COST] Total spent this session: ${total_cost:.4f} (estimate)")
+            print(f"[COST] Verify actual charges: https://platform.openai.com/usage")
     else:
         print(f"[ERROR] Path not found: {target}")
         sys.exit(1)
