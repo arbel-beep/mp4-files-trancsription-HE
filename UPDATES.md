@@ -8,7 +8,7 @@ All notable changes to this project, newest first.
 
 ### Cost tracking for OpenAI Whisper API
 
-When using the paid OpenAI option (`transcribe_openai.py`), you now see exactly
+When using the paid OpenAI option, you now see exactly
 how much each file cost and a running total at the end of the session.
 
 **Per file:**
