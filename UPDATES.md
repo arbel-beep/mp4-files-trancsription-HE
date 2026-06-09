@@ -31,7 +31,7 @@ dashboard to verify exact charges.
 
 ## 2026-06-09 (2)
 
-### Claude slash commands for transcription
+### Claude commands for transcription
 
 Two `/transcribe` commands are now included for users running this project
 inside [Claude Code](https://claude.ai/code):
