@@ -17,6 +17,7 @@ Skips any MP4 whose output .txt already exists.
 """
 import sys
 import io
+import time
 import argparse
 from pathlib import Path
 
@@ -24,6 +25,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 from faster_whisper import WhisperModel
+from tqdm import tqdm
 
 LANGUAGE = "he"
 DEVICE = "cpu"
@@ -44,27 +46,37 @@ def output_path_for(mp4_path: Path, root: Path, output_dir: Path) -> Path:
     return (output_dir / rel).with_suffix(".txt")
 
 
-def process_one(mp4_path: Path, model: WhisperModel, root: Path, output_dir: Path):
+def process_one(mp4_path: Path, model: WhisperModel, root: Path, output_dir: Path, file_index: int = 0, file_total: int = 1):
     out = output_path_for(mp4_path, root, output_dir)
     if out.exists():
         print(f"[INFO] Skip — {out.name} already exists")
         return
     out.parent.mkdir(parents=True, exist_ok=True)
 
+    prefix = f"[{file_index}/{file_total}]" if file_total > 1 else ""
     print(f"\n{'='*60}")
-    print(f"[INFO] Transcribing: {mp4_path.name}")
+    print(f"[INFO] {prefix} Transcribing: {mp4_path.name}")
+    t_start = time.monotonic()
     segments, info = model.transcribe(str(mp4_path), language=LANGUAGE, beam_size=5)
-    print(f"[INFO] Language: {info.language} (prob={info.language_probability:.2f})")
+    print(f"[INFO] Language: {info.language} (prob={info.language_probability:.2f}) | Audio: {info.duration:.1f}s")
 
     lines = []
+    bar = tqdm(total=int(info.duration), unit="s", desc="audio", ncols=70, leave=False)
+    last_end = 0.0
     for seg in segments:
         line = seg.text.strip()
         if line:
             lines.append(line)
-            print(f"  [{seg.start:.1f}s -> {seg.end:.1f}s] {line}")
+            tqdm.write(f"  [{seg.start:.1f}s -> {seg.end:.1f}s] {line}")
+        advance = seg.end - last_end
+        if advance > 0:
+            bar.update(int(advance))
+        last_end = seg.end
+    bar.close()
 
-    out.write_text("\n".join(lines), encoding="utf-8")
-    print(f"[DONE] Saved: {out}")
+    elapsed = time.monotonic() - t_start
+    rt_factor = info.duration / elapsed if elapsed > 0 else 0
+    print(f"[DONE] {mp4_path.name} — {elapsed:.1f}s wall, {rt_factor:.2f}x RT | Saved: {out}")
 
 
 def main():
@@ -90,9 +102,9 @@ def main():
             sys.exit(0)
         print(f"[INFO] Found {len(mp4s)} MP4 file(s) in {target.name}")
         print(f"[INFO] Transcripts will be written to: {output_dir}")
-        for mp4 in mp4s:
+        for i, mp4 in enumerate(mp4s, 1):
             try:
-                process_one(mp4, model, target, output_dir)
+                process_one(mp4, model, target, output_dir, file_index=i, file_total=len(mp4s))
             except Exception as e:
                 print(f"[ERROR] {mp4.name}: {e}")
     else:
