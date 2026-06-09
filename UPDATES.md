@@ -70,6 +70,8 @@ whether it's still running.
 (added to `requirements.txt`; run `pip install -r transcription/requirements.txt`
 if you haven't updated your environment yet).
 
+![Progress monitoring showing batch counter and progress bar](images/Screenshot%202026-06-09%20122810.png)
+
 ---
 
 ## Earlier
